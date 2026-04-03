@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <h1>Explore the Docs</h1>
+    <p>Read through beautifully rendered markdown content.</p>
+</section>
+
+<section class="post-list">
+    {% set ns = namespace(found=false) %}
+    {% for post in files %}
+        {% set ns.found = true %}
+        <a href="/{{ post.id }}" class="post-card">
+            <div class="card-content">
+                <h2>{{ post.title }}</h2>
+                <div class="meta">
+                    {% if post.date %}
+                        <span class="date">{{ post.date }}</span>
+                    {% endif %}
+                </div>
+                {% if post.description %}
+                    <p class="description">{{ post.description }}</p>
+                {% endif %}
+            </div>
+            <div class="card-arrow">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </div>
+        </a>
+    {% endfor %}
+    
+    {% if not ns.found %}
+        <div class="empty-state">
+            <p>No markdown files found. Add some `.md` files to the `content/` folder.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
