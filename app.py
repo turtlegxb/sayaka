@@ -11,27 +11,33 @@ def get_markdown_files():
     if not os.path.exists(CONTENT_DIR):
         return files
     
-    for filename in os.listdir(CONTENT_DIR):
-        if filename.endswith('.md'):
-            # Read the file to get frontmatter metadata
-            filepath = os.path.join(CONTENT_DIR, filename)
-            with codecs.open(filepath, mode="r", encoding="utf-8") as f:
-                text = f.read()
-            
-            md = markdown.Markdown(extensions=['meta'])
-            md.convert(text)
-            
-            meta = getattr(md, 'Meta', {})
-            title = meta.get('title', [filename[:-3]])[0]
-            date = meta.get('date', [''])[0]
-            description = meta.get('description', [''])[0]
-            
-            files.append({
-                'id': filename[:-3],
-                'title': title,
-                'date': date,
-                'description': description
-            })
+    for root, dirs, filenames in os.walk(CONTENT_DIR):
+        for filename in filenames:
+            if filename.endswith('.md'):
+                # Read the file to get frontmatter metadata
+                filepath = os.path.join(root, filename)
+                with codecs.open(filepath, mode="r", encoding="utf-8") as f:
+                    text = f.read()
+                
+                md = markdown.Markdown(extensions=['meta'])
+                md.convert(text)
+                
+                meta = getattr(md, 'Meta', {})
+                title = meta.get('title', [filename[:-3]])[0]
+                date = meta.get('date', [''])[0]
+                description = meta.get('description', [''])[0]
+                
+                # Calculate relative path as ID
+                rel_path = os.path.relpath(filepath, CONTENT_DIR)
+                post_id = rel_path[:-3] # remove .md
+                post_id = post_id.replace(os.sep, '/')
+                
+                files.append({
+                    'id': post_id,
+                    'title': title,
+                    'date': date,
+                    'description': description
+                })
     
     # Sort files by date descending (optional)
     return sorted(files, key=lambda x: x['date'], reverse=True)
@@ -41,7 +47,7 @@ def index():
     files = get_markdown_files()
     return render_template('index.html', files=files)
 
-@app.route('/<post_id>')
+@app.route('/<path:post_id>')
 def post(post_id):
     filepath = os.path.join(CONTENT_DIR, f"{post_id}.md")
     if not os.path.exists(filepath):
