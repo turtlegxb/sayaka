@@ -100,6 +100,32 @@ def get_content_items(rel_dir=""):
 
     return sorted(items, key=sort_key, reverse=True)
 
+def get_fuzzy_file_match(req_path):
+    """Find the most recently created markdown file that fuzzy matches the requested path."""
+    best_match = None
+    max_ctime = -1
+    
+    query = req_path.lower().strip('/')
+    
+    for root, _, filenames in os.walk(CONTENT_DIR):
+        for filename in filenames:
+            if filename.endswith('.md'):
+                full_path = os.path.join(root, filename)
+                # Get relative path without extension
+                rel_path = os.path.relpath(full_path, CONTENT_DIR)[:-3].replace(os.sep, '/')
+                
+                # Check if the query is in the relative path (fuzzy matching)
+                if query in rel_path.lower():
+                    try:
+                        stat = os.stat(full_path)
+                        ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
+                        if ctime > max_ctime:
+                            max_ctime = ctime
+                            best_match = full_path
+                    except Exception:
+                        continue
+    return best_match
+
 @app.route('/')
 def index():
     items = get_content_items("")
@@ -116,7 +142,12 @@ def catch_all(req_path):
     # Check if it's a markdown file
     filepath = os.path.join(CONTENT_DIR, f"{req_path}.md")
     if not os.path.exists(filepath):
-        abort(404)
+        # Fuzzy match fallback
+        fuzzy_path = get_fuzzy_file_match(req_path)
+        if fuzzy_path:
+            filepath = fuzzy_path
+        else:
+            abort(404)
         
     with codecs.open(filepath, mode="r", encoding="utf-8") as f:
         text = f.read()
@@ -139,6 +170,10 @@ def catch_all(req_path):
                            date=date, 
                            description=description, 
                            content=html_content)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')

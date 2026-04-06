@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Not Found | Sayaka{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-visual">
+         <h1 class="error-code">404</h1>
+         <div class="error-glow"></div>
+    </div>
+    <div class="error-content">
+        <h2>Document Not Found</h2>
+        <p>The path you navigated to doesn't contain a Markdown document (yet). Please check for typos or return to the homepage.</p>
+        <div class="error-actions">
+            <a href="/" class="btn-primary">
+                Return Home
+                <span class="btn-arrow">→</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

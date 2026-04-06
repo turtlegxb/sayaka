@@ -18,7 +18,17 @@
     </p>
 </section>
 
-<section class="post-list">
+<div class="search-container">
+    <div class="search-wrapper">
+        <input type="text" id="search-input" placeholder="Search for documents..." class="search-input" autocomplete="off">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+    </div>
+</div>
+
+<section class="post-list" id="post-list">
     {% set ns = namespace(found=false) %}
     
     {% if current_path %}
@@ -77,5 +87,54 @@
             <p>This directory is empty.</p>
         </div>
     {% endif %}
+
+    <div id="empty-search-state" class="empty-search-state">
+        <p>No results found for "<span id="search-term-display" class="search-term"></span>"</p>
+        <p>Try a different keyword.</p>
+    </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    const postList = document.getElementById('post-list');
+    const cards = Array.from(postList.querySelectorAll('.post-card:not(.back-card)'));
+    const emptySearchState = document.getElementById('empty-search-state');
+    const searchTermDisplay = document.getElementById('search-term-display');
+    const emptyPostState = postList.querySelector('.empty-state');
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const terms = query.split(/\s+/).filter(t => t.length > 0);
+        
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const title = card.querySelector('h2').textContent.toLowerCase();
+            const description = (card.querySelector('.description')?.textContent || '').toLowerCase();
+            
+            // Match if all search terms are found in title or description
+            const isMatch = terms.every(term => title.includes(term) || description.includes(term));
+            
+            if (isMatch) {
+                card.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        // Toggle empty search state
+        if (query.length > 0 && visibleCount === 0) {
+            emptySearchState.classList.add('visible');
+            searchTermDisplay.textContent = query;
+            // Hide the default "empty-state" if it exists
+            if (emptyPostState) emptyPostState.style.display = 'none';
+        } else {
+            emptySearchState.classList.remove('visible');
+            if (emptyPostState) emptyPostState.style.display = '';
+        }
+    });
+});
+</script>
 {% endblock %}

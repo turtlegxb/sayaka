@@ -69,6 +69,7 @@ body {
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #f8fafc, #8b5cf6);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -105,6 +106,84 @@ main {
 .hero p {
   font-size: 1.25rem;
   color: #94a3b8;
+}
+
+/* Search Bar */
+.search-container {
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1.5rem 1rem 3.5rem;
+  font-size: 1.1rem;
+  color: var(--text-color);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1), 0 4px 20px -5px rgba(0,0,0,0.3);
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.search-input:focus + .search-icon {
+  color: var(--accent-color);
+}
+
+/* Empty search results */
+.empty-search-state {
+  text-align: center;
+  padding: 3rem 0;
+  display: none; /* Hidden by default */
+}
+
+.empty-search-state.visible {
+  display: block;
+}
+
+.empty-search-state p {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.empty-search-state .search-term {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Utility to hide search results */
+.hidden {
+  display: none !important;
 }
 
 /* Post Cards */
@@ -326,6 +405,105 @@ main {
   font-weight: 600;
   color: var(--heading-color);
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Error Page Styles */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-top: 4rem;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.error-visual {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.error-code {
+  font-size: 8rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, #f8fafc, #8b5cf6, #38bdf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradientMove 5s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.error-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 60%);
+  z-index: -1;
+  filter: blur(40px);
+}
+
+.error-content h2 {
+  font-size: 2rem;
+  color: var(--heading-color);
+  margin-bottom: 1rem;
+}
+
+.error-content p {
+  color: #94a3b8;
+  max-width: 450px;
+  margin-bottom: 3rem;
+  font-size: 1.1rem;
+}
+
+/* Reusable Glassmorphic Button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 2rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 100px;
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 600;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 25px -5px var(--accent-glow);
+  transform: translateY(-2px);
+  color: #fff;
+}
+
+.btn-arrow {
+  transition: transform 0.3s ease;
+}
+
+.btn-primary:hover .btn-arrow {
+  transform: translateX(4px);
 }
 
 /* Footer */
