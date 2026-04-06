@@ -2,20 +2,57 @@
 
 {% block content %}
 <section class="hero">
-    <h1>Explore the Docs</h1>
-    <p>Read through beautifully rendered markdown content.</p>
+    <h1>
+        {% if current_path %}
+            /{{ current_path }}
+        {% else %}
+            Explore the Docs
+        {% endif %}
+    </h1>
+    <p>
+        {% if current_path %}
+            Browsing documents in this category.
+        {% else %}
+            Read through beautifully rendered markdown content.
+        {% endif %}
+    </p>
 </section>
 
 <section class="post-list">
     {% set ns = namespace(found=false) %}
+    
+    {% if current_path %}
+        {% set parent_path = current_path.split('/')[:-1]|join('/') %}
+        <a href="/{{ parent_path }}" class="post-card folder-card back-card">
+            <div class="card-content">
+                <div class="folder-header">
+                    <svg class="folder-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 17l-5-5 5-5M18 12H6"></path>
+                    </svg>
+                    <h2>Back to Parent</h2>
+                </div>
+            </div>
+        </a>
+    {% endif %}
+
     {% for post in files %}
         {% set ns.found = true %}
-        <a href="/{{ post.id }}" class="post-card">
+        <a href="/{{ post.id }}" class="post-card {{ 'folder-card' if post.type == 'folder' else 'file-card' }}">
             <div class="card-content">
-                <h2>{{ post.title }}</h2>
+                <div class="card-header">
+                    {% if post.type == 'folder' %}
+                        <svg class="folder-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    {% endif %}
+                    <h2>{{ post.title }}</h2>
+                </div>
                 <div class="meta">
                     {% if post.date %}
                         <span class="date">{{ post.date }}</span>
+                    {% endif %}
+                    {% if post.type == 'folder' %}
+                        <span class="badge">Folder</span>
                     {% endif %}
                 </div>
                 {% if post.description %}
@@ -31,9 +68,13 @@
         </a>
     {% endfor %}
     
-    {% if not ns.found %}
+    {% if not ns.found and not current_path %}
         <div class="empty-state">
             <p>No markdown files found. Add some `.md` files to the `content/` folder.</p>
+        </div>
+    {% elif not ns.found %}
+         <div class="empty-state">
+            <p>This directory is empty.</p>
         </div>
     {% endif %}
 </section>
