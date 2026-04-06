@@ -1,6 +1,7 @@
 import os
 import markdown
 import codecs
+import time
 from flask import Flask, render_template, abort
 
 app = Flask(__name__)
@@ -9,8 +10,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(BASE_DIR, 'content')
 
 def get_post_metadata(filepath):
-    """Extract metadata from a markdown file."""
+    """Extract metadata and creation time from a markdown file."""
     try:
+        # Get creation time (st_ctime or st_birthtime on some systems)
+        stat = os.stat(filepath)
+        ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
+        # Format as string for the UI
+        date_str = time.strftime('%Y-%m-%d', time.localtime(ctime))
+        
         with codecs.open(filepath, mode="r", encoding="utf-8") as f:
             text = f.read()
         
@@ -18,25 +25,34 @@ def get_post_metadata(filepath):
         md.convert(text)
         meta = getattr(md, 'Meta', {})
         
+        # Prefer frontmatter date if available
+        if 'date' in meta:
+            date_str = meta['date'][0]
+
         return {
             'title': meta.get('title', [os.path.basename(filepath)[:-3]])[0],
-            'date': meta.get('date', [''])[0],
-            'description': meta.get('description', [''])[0],
-            'content': None # Placeholder for when we only need meta
+            'date': date_str,
+            'ctime': ctime, # Numeric timestamp for accurate sorting
+            'description': meta.get('description', [''])[0]
         }
     except Exception:
         return None
 
-def get_latest_date_in_dir(dir_path):
-    """Recursively find the newest date in all markdown files within a directory."""
-    latest_date = ""
+def get_latest_ctime_in_dir(dir_path):
+    """Recursively find the newest creation timestamp in all markdown files within a directory."""
+    latest_ctime = 0.0
     for root, _, filenames in os.walk(dir_path):
         for filename in filenames:
             if filename.endswith('.md'):
-                meta = get_post_metadata(os.path.join(root, filename))
-                if meta and meta['date'] > latest_date:
-                    latest_date = meta['date']
-    return latest_date
+                filepath = os.path.join(root, filename)
+                try:
+                    stat = os.stat(filepath)
+                    ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
+                    if ctime > latest_ctime:
+                        latest_ctime = ctime
+                except Exception:
+                    continue
+    return latest_ctime
 
 def get_content_items(rel_dir=""):
     """List items in a specific directory (non-recursive listing)."""
@@ -54,13 +70,14 @@ def get_content_items(rel_dir=""):
         rel_item_path = os.path.join(rel_dir, entry).replace(os.sep, '/').strip('/')
         
         if os.path.isdir(full_path):
-            # It's a folder
-            latest_date = get_latest_date_in_dir(full_path)
+            # It's a folder: get latest creation time inside
+            latest_ctime = get_latest_ctime_in_dir(full_path)
             items.append({
                 'id': rel_item_path,
                 'title': entry,
                 'type': 'folder',
-                'date': latest_date,
+                'date': time.strftime('%Y-%m-%d', time.localtime(latest_ctime)) if latest_ctime > 0 else '',
+                'ctime': latest_ctime,
                 'description': f"Collection of documents in {entry}"
             })
         elif entry.endswith('.md'):
@@ -72,14 +89,14 @@ def get_content_items(rel_dir=""):
                     'title': meta['title'],
                     'type': 'file',
                     'date': meta['date'],
+                    'ctime': meta['ctime'],
                     'description': meta['description']
                 })
 
-    # Sort: Folders first (type='folder' > type='file'), then date descending
-    # Type 'folder' is larger than 'file' alphabetically, or we can use a custom key
+    # Sort: Folders first (is_folder=1), then creation time descending
     def sort_key(item):
         is_folder = (1 if item['type'] == 'folder' else 0)
-        return (is_folder, item['date'], item['title'])
+        return (is_folder, item['ctime'], item['title'])
 
     return sorted(items, key=sort_key, reverse=True)
 
