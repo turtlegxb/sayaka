@@ -153,21 +153,34 @@ def catch_all(req_path):
     with codecs.open(filepath, mode="r", encoding="utf-8") as f:
         text = f.read()
 
-    # Pre-process to support 2-space indents for nested lists (agent-generated reports often use 2 spaces)
-    # This converts lines starting with an even number of spaces (2, 4, 6...) followed by a list marker
-    # into 4, 8, 12... spaces respectively, which Python-Markdown requires.
-    processed_lines = []
-    for line in text.split('\n'):
-        # Match leading spaces followed by a markdown list marker
-        match = re.match(r'^( +)([-*+]|\d+\.) ', line)
-        if match:
-            spaces = match.group(1)
-            if len(spaces) % 2 == 0:
-                # Double the spaces if it's an even count less than the standard 4-space multiple increments
-                # Actually, simply doubling 2 to 4, 4 to 8 works best for Python-Markdown's defaults
-                line = (" " * len(spaces)) + line
-        processed_lines.append(line)
-    text = '\n'.join(processed_lines)
+    # Pre-process markdown text to fix common issues with Python-Markdown:
+    # 1. Ensure a blank line exists before any list block (Python-Markdown requires this,
+    #    otherwise list items get absorbed into the preceding paragraph).
+    # 2. Normalize 2-space indentation to 4-space for nested list items.
+    def preprocess_markdown(text):
+        lines = text.split('\n')
+        result = []
+        for i, line in enumerate(lines):
+            is_list_item = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', line))
+            if is_list_item:
+                # Normalize 2-space indentation to 4-space for nested items
+                indent_match = re.match(r'^( +)', line)
+                if indent_match:
+                    spaces = indent_match.group(1)
+                    # Double the indent: 2->4, 4->8, etc.
+                    line = (' ' * len(spaces)) + line
+
+                # Ensure blank line before the start of a list block
+                if i > 0:
+                    prev_line = lines[i - 1].strip()
+                    prev_is_list = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', lines[i - 1]))
+                    # If previous line is not blank, not a list item, and not a heading
+                    if prev_line and not prev_is_list and not prev_line.startswith('#'):
+                        result.append('')
+            result.append(line)
+        return '\n'.join(result)
+
+    text = preprocess_markdown(text)
         
     md = markdown.Markdown(extensions=[
         'meta', 
