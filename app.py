@@ -155,8 +155,9 @@ def catch_all(req_path):
     md = markdown.Markdown(extensions=[
         'meta', 
         'fenced_code', 
-        'tables', 
-        'codehilite'
+        'extra',
+        'codehilite',
+        'sane_lists'
     ])
     html_content = md.convert(text)
     meta = getattr(md, 'Meta', {})

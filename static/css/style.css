@@ -43,7 +43,8 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 1100px;
+  width: 95%;
   margin: 0 auto;
   padding: 0 2rem;
   display: flex;
@@ -344,10 +345,40 @@ main {
 .markdown-content ul, 
 .markdown-content ol {
   margin-bottom: 1.5rem;
-  padding-left: 1.5rem;
+  padding-left: 2rem; /* Increased padding for better bullet visibility */
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+/* Nested lists */
+.markdown-content ul ul, 
+.markdown-content ol ul,
+.markdown-content ul ol,
+.markdown-content ol ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content ul ul {
+  list-style-type: circle;
+}
+
+.markdown-content ul ul ul {
+  list-style-type: square;
 }
 
 .markdown-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.markdown-content li > p {
   margin-bottom: 0.5rem;
 }
 
