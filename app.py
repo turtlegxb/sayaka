@@ -2,6 +2,7 @@ import os
 import markdown
 import codecs
 import time
+import re
 from flask import Flask, render_template, abort
 
 app = Flask(__name__)
@@ -151,6 +152,22 @@ def catch_all(req_path):
         
     with codecs.open(filepath, mode="r", encoding="utf-8") as f:
         text = f.read()
+
+    # Pre-process to support 2-space indents for nested lists (agent-generated reports often use 2 spaces)
+    # This converts lines starting with an even number of spaces (2, 4, 6...) followed by a list marker
+    # into 4, 8, 12... spaces respectively, which Python-Markdown requires.
+    processed_lines = []
+    for line in text.split('\n'):
+        # Match leading spaces followed by a markdown list marker
+        match = re.match(r'^( +)([-*+]|\d+\.) ', line)
+        if match:
+            spaces = match.group(1)
+            if len(spaces) % 2 == 0:
+                # Double the spaces if it's an even count less than the standard 4-space multiple increments
+                # Actually, simply doubling 2 to 4, 4 to 8 works best for Python-Markdown's defaults
+                line = (" " * len(spaces)) + line
+        processed_lines.append(line)
+    text = '\n'.join(processed_lines)
         
     md = markdown.Markdown(extensions=[
         'meta', 

@@ -345,7 +345,8 @@ main {
 .markdown-content ul, 
 .markdown-content ol {
   margin-bottom: 1.5rem;
-  padding-left: 2rem; /* Increased padding for better bullet visibility */
+  padding-left: 2.5rem;
+  list-style-position: outside;
 }
 
 .markdown-content ul {
@@ -363,6 +364,7 @@ main {
 .markdown-content ol ol {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+  padding-left: 1.5rem;
 }
 
 .markdown-content ul ul {
@@ -374,12 +376,12 @@ main {
 }
 
 .markdown-content li {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
+  margin-bottom: 0.75rem;
+  line-height: 1.7;
 }
 
 .markdown-content li > p {
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
 }
 
 .markdown-content blockquote {
