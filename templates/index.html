@@ -112,9 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cards.forEach(card => {
             const title = card.querySelector('h2').textContent.toLowerCase();
             const description = (card.querySelector('.description')?.textContent || '').toLowerCase();
+            const isFolder = card.classList.contains('folder-card');
             
-            // Match if all search terms are found in title or description
-            const isMatch = terms.every(term => title.includes(term) || description.includes(term));
+            // Match if all search terms are found in title or description AND it's not a folder (if searching)
+            const isMatch = (query === '') || (terms.every(term => title.includes(term) || description.includes(term)) && !isFolder);
             
             if (isMatch) {
                 card.classList.remove('hidden');

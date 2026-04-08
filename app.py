@@ -112,11 +112,11 @@ def get_fuzzy_file_match(req_path):
         for filename in filenames:
             if filename.endswith('.md'):
                 full_path = os.path.join(root, filename)
-                # Get relative path without extension
-                rel_path = os.path.relpath(full_path, CONTENT_DIR)[:-3].replace(os.sep, '/')
+                # Get only the filename without extension
+                filename_only = os.path.basename(full_path)[:-3].lower()
                 
-                # Check if the query is in the relative path (fuzzy matching)
-                if query in rel_path.lower():
+                # Check if the query is in the filename (fuzzy matching)
+                if query in filename_only:
                     try:
                         stat = os.stat(full_path)
                         ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
