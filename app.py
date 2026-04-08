@@ -108,7 +108,7 @@ def get_fuzzy_file_match(req_path):
     
     query = req_path.lower().strip('/')
     
-    for filename in os.listdir(CONTENT_DIR):
+    for filename in os.listdir(os.path.join(CONTENT_DIR, req_path.split('/')[:-1])):
         if filename.endswith('.md'):
             full_path = os.path.join(CONTENT_DIR, filename)
             # Get only the filename without extension
