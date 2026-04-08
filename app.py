@@ -108,23 +108,22 @@ def get_fuzzy_file_match(req_path):
     
     query = req_path.lower().strip('/')
     
-    for root, _, filenames in os.walk(CONTENT_DIR):
-        for filename in filenames:
-            if filename.endswith('.md'):
-                full_path = os.path.join(root, filename)
-                # Get only the filename without extension
-                filename_only = os.path.basename(full_path)[:-3].lower()
+    for filename in os.listdir(CONTENT_DIR):
+        if filename.endswith('.md'):
+            full_path = os.path.join(CONTENT_DIR, filename)
+            # Get only the filename without extension
+            filename_only = os.path.basename(full_path)[:-3].lower()
                 
-                # Check if the query is in the filename (fuzzy matching)
-                if query in filename_only:
-                    try:
-                        stat = os.stat(full_path)
-                        ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
-                        if ctime > max_ctime:
-                            max_ctime = ctime
-                            best_match = full_path
-                    except Exception:
-                        continue
+            # Check if the query is in the filename (fuzzy matching)
+            if query in filename_only:
+                try:
+                    stat = os.stat(full_path)
+                    ctime = getattr(stat, 'st_birthtime', stat.st_ctime)
+                    if ctime > max_ctime:
+                        max_ctime = ctime
+                        best_match = full_path
+                except Exception:
+                    continue
     return best_match
 
 @app.route('/')
