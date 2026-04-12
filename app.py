@@ -3,12 +3,14 @@ import markdown
 import codecs
 import time
 import re
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, send_from_directory
 
 app = Flask(__name__)
 # Get absolute path to the directory containing this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(BASE_DIR, 'content')
+# Map report paths to local filesystem paths
+CHART_BASE_DIR = "/Users/turtle/Documents/Code/miranda/charts"
 
 def get_post_metadata(filepath):
     """Extract metadata and creation time from a markdown file."""
@@ -126,6 +128,23 @@ def get_fuzzy_file_match(req_path):
                     continue
     return best_match
 
+@app.route('/charts/<path:filename>')
+def serve_chart(filename):
+    """Serve chart images from the miranda charts directory or a placeholder."""
+    # Try primary directory
+    primary_path = os.path.join(CHART_BASE_DIR, filename)
+    if os.path.exists(primary_path):
+        return send_from_directory(CHART_BASE_DIR, filename)
+    
+    # Try placeholder directory (per user request)
+    placeholder_dir = os.path.expanduser('~/Downloads')
+    placeholder_path = os.path.join(placeholder_dir, filename)
+    if os.path.exists(placeholder_path):
+        return send_from_directory(placeholder_dir, filename)
+        
+    # If not found, return 404
+    abort(404)
+
 @app.route('/')
 def index():
     items = get_content_items("")
@@ -177,7 +196,17 @@ def catch_all(req_path):
                     if prev_line and not prev_is_list and not prev_line.startswith('#'):
                         result.append('')
             result.append(line)
-        return '\n'.join(result)
+        
+        text = '\n'.join(result)
+        
+        # Strip wrapping markdown code blocks if the entire content is wrapped
+        text = text.strip()
+        if text.startswith('```markdown') and text.endswith('```'):
+            text = text[11:-3].strip()
+        elif text.startswith('```') and text.endswith('```'):
+            text = text[3:-3].strip()
+            
+        return text
 
     text = preprocess_markdown(text)
         
@@ -189,6 +218,22 @@ def catch_all(req_path):
         'sane_lists'
     ])
     html_content = md.convert(text)
+    
+    # Handle <<CHART_UPLOAD:path>> tags after conversion to avoid escaping/code-block issues
+    def replace_chart_tag(match):
+        content = match.group(1).strip()
+        # If it looks like a path
+        if content.startswith('/') and (content.endswith('.png') or content.endswith('.jpg') or content.endswith('.jpeg')):
+            filename = os.path.basename(content)
+            return f'<div class="chart-container"><img src="/charts/{filename}" alt="Chart: {filename}" class="chart-image"></div>'
+        else:
+            # Treat as an error or status message
+            return f'<div class="chart-error">📊 {content}</div>'
+    
+    html_content = re.sub(r'&lt;&lt;CHART_UPLOAD:(.*?)&gt;&gt;', replace_chart_tag, html_content)
+    # Also handle it if it wasn't escaped (unlikely but safe)
+    html_content = re.sub(r'<<CHART_UPLOAD:(.*?)>>', replace_chart_tag, html_content)
+
     meta = getattr(md, 'Meta', {})
     
     title = meta.get('title', [req_path.split('/')[-1]])[0]
