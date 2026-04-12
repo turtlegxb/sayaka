@@ -10,7 +10,7 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(BASE_DIR, 'content')
 # Map report paths to local filesystem paths
-CHART_BASE_DIR = "/Users/turtle/Documents/Code/miranda/charts"
+CHART_BASE_DIR = os.path.join(BASE_DIR, 'charts')
 
 def get_post_metadata(filepath):
     """Extract metadata and creation time from a markdown file."""
@@ -182,20 +182,10 @@ def preprocess_markdown(text):
 
 @app.route('/charts/<path:filename>')
 def serve_chart(filename):
-    """Serve chart images from the miranda charts directory or a placeholder."""
-    # Try primary directory
-    primary_path = os.path.join(CHART_BASE_DIR, filename)
-    if os.path.exists(primary_path):
-        return send_from_directory(CHART_BASE_DIR, filename)
-    
-    # Try placeholder directory (per user request)
-    placeholder_dir = os.path.expanduser('~/Downloads')
-    placeholder_path = os.path.join(placeholder_dir, filename)
-    if os.path.exists(placeholder_path):
-        return send_from_directory(placeholder_dir, filename)
-        
-    # If not found, return 404
-    abort(404)
+    """Serve chart images from the local charts directory."""
+    if not os.path.exists(CHART_BASE_DIR):
+        abort(404)
+    return send_from_directory(CHART_BASE_DIR, filename)
 
 @app.route('/')
 def index():
@@ -204,6 +194,10 @@ def index():
 
 @app.route('/<path:req_path>')
 def catch_all(req_path):
+    # Explicitly exclude charts directory from document matching
+    if req_path.startswith('charts/'):
+        abort(404)
+        
     # Check if it's a directory
     dir_path = os.path.join(CONTENT_DIR, req_path)
     if os.path.isdir(dir_path):
