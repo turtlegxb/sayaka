@@ -128,6 +128,58 @@ def get_fuzzy_file_match(req_path):
                     continue
     return best_match
 
+def preprocess_markdown(text):
+    """Pre-process markdown text to handle custom tags and formatting issues."""
+    
+    # 1. Handle <<CHART_UPLOAD:path>> tags before markdown conversion
+    # This avoids escaping issues where << becomes &lt;<
+    def replace_chart_tag(match):
+        content = match.group(1).strip()
+        # If it has an image extension, treat as an image path/filename
+        if any(content.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+            filename = os.path.basename(content)
+            return f'<div class="chart-container"><img src="/charts/{filename}" alt="Chart: {filename}" class="chart-image"></div>'
+        else:
+            # Treat as an error or status message
+            return f'<div class="chart-error">📊 {content}</div>'
+    
+    text = re.sub(r'<<CHART_UPLOAD:(.*?)>>', replace_chart_tag, text)
+
+    # 2. Fix common issues with Python-Markdown:
+    # - Ensure a blank line exists before any list block (Python-Markdown requirements)
+    # - Normalize 2-space indentation to 4-space for nested list items.
+    lines = text.split('\n')
+    result = []
+    for i, line in enumerate(lines):
+        is_list_item = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', line))
+        if is_list_item:
+            # Normalize 2-space indentation to 4-space for nested items
+            indent_match = re.match(r'^( +)', line)
+            if indent_match:
+                spaces = indent_match.group(1)
+                # Double the indent: 2->4, 4->8, etc.
+                line = (' ' * len(spaces)) + line
+
+            # Ensure blank line before the start of a list block
+            if i > 0:
+                prev_line = lines[i - 1].strip()
+                prev_is_list = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', lines[i - 1]))
+                # If previous line is not blank, not a list item, and not a heading
+                if prev_line and not prev_is_list and not prev_line.startswith('#'):
+                    result.append('')
+        result.append(line)
+    
+    text = '\n'.join(result)
+    
+    # 3. Strip wrapping markdown code blocks if the entire content is wrapped
+    text = text.strip()
+    if text.startswith('```markdown') and text.endswith('```'):
+        text = text[11:-3].strip()
+    elif text.startswith('```') and text.endswith('```'):
+        text = text[3:-3].strip()
+        
+    return text
+
 @app.route('/charts/<path:filename>')
 def serve_chart(filename):
     """Serve chart images from the miranda charts directory or a placeholder."""
@@ -171,43 +223,7 @@ def catch_all(req_path):
     with codecs.open(filepath, mode="r", encoding="utf-8") as f:
         text = f.read()
 
-    # Pre-process markdown text to fix common issues with Python-Markdown:
-    # 1. Ensure a blank line exists before any list block (Python-Markdown requires this,
-    #    otherwise list items get absorbed into the preceding paragraph).
-    # 2. Normalize 2-space indentation to 4-space for nested list items.
-    def preprocess_markdown(text):
-        lines = text.split('\n')
-        result = []
-        for i, line in enumerate(lines):
-            is_list_item = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', line))
-            if is_list_item:
-                # Normalize 2-space indentation to 4-space for nested items
-                indent_match = re.match(r'^( +)', line)
-                if indent_match:
-                    spaces = indent_match.group(1)
-                    # Double the indent: 2->4, 4->8, etc.
-                    line = (' ' * len(spaces)) + line
-
-                # Ensure blank line before the start of a list block
-                if i > 0:
-                    prev_line = lines[i - 1].strip()
-                    prev_is_list = bool(re.match(r'^(\s*)([-*+]|\d+\.)\s', lines[i - 1]))
-                    # If previous line is not blank, not a list item, and not a heading
-                    if prev_line and not prev_is_list and not prev_line.startswith('#'):
-                        result.append('')
-            result.append(line)
-        
-        text = '\n'.join(result)
-        
-        # Strip wrapping markdown code blocks if the entire content is wrapped
-        text = text.strip()
-        if text.startswith('```markdown') and text.endswith('```'):
-            text = text[11:-3].strip()
-        elif text.startswith('```') and text.endswith('```'):
-            text = text[3:-3].strip()
-            
-        return text
-
+    # Pre-process markdown text
     text = preprocess_markdown(text)
         
     md = markdown.Markdown(extensions=[
@@ -219,23 +235,7 @@ def catch_all(req_path):
     ])
     html_content = md.convert(text)
     
-    # Handle <<CHART_UPLOAD:path>> tags after conversion to avoid escaping/code-block issues
-    def replace_chart_tag(match):
-        content = match.group(1).strip()
-        # If it looks like a path
-        if content.startswith('/') and (content.endswith('.png') or content.endswith('.jpg') or content.endswith('.jpeg')):
-            filename = os.path.basename(content)
-            return f'<div class="chart-container"><img src="/charts/{filename}" alt="Chart: {filename}" class="chart-image"></div>'
-        else:
-            # Treat as an error or status message
-            return f'<div class="chart-error">📊 {content}</div>'
-    
-    html_content = re.sub(r'&lt;&lt;CHART_UPLOAD:(.*?)&gt;&gt;', replace_chart_tag, html_content)
-    # Also handle it if it wasn't escaped (unlikely but safe)
-    html_content = re.sub(r'<<CHART_UPLOAD:(.*?)>>', replace_chart_tag, html_content)
-
     meta = getattr(md, 'Meta', {})
-    
     title = meta.get('title', [req_path.split('/')[-1]])[0]
     date = meta.get('date', [''])[0]
     description = meta.get('description', [''])[0]
