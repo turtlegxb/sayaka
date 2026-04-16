@@ -171,13 +171,25 @@ def preprocess_markdown(text):
     
     text = '\n'.join(result)
     
-    # 3. Strip wrapping markdown code blocks if the entire content is wrapped
+    # 3. Strip wrapping markdown code blocks
     text = text.strip()
-    if text.startswith('```markdown') and text.endswith('```'):
-        text = text[11:-3].strip()
-    elif text.startswith('```') and text.endswith('```'):
-        text = text[3:-3].strip()
-        
+    
+    # Check if the document has a large markdown block that goes until the end of the file.
+    # LLMs sometimes add conversational text before the actual markdown report.
+    match = re.match(r'^(.*?)(?:^|\n)```(?:markdown|md)\s*\n(.*)\n```\s*$', text, re.DOTALL | re.IGNORECASE)
+    if match:
+        pre_text = match.group(1).strip()
+        main_content = match.group(2).strip()
+        if pre_text:
+            text = pre_text + "\n\n" + main_content
+        else:
+            text = main_content
+    else:
+        # Generic full-file wrapper
+        if text.startswith('```') and text.endswith('```'):
+            text = re.sub(r'^```[^\n]*\n', '', text)
+            text = text[:-3].strip()
+            
     return text
 
 @app.route('/charts/<path:filename>')
